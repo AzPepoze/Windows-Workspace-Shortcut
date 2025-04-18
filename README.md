@@ -3,6 +3,7 @@
 This script allows you to easily switch and move windows between `Windows Workspaces` using Hotkeys.
 
 This project uses the [VirtualDesktopAccessor](https://github.com/Ciantic/VirtualDesktopAccessor) library. Thank you to the creators and contributors.
+This project uses the [win-10-virtual-desktop-enhancer library](https://github.com/sdias/win-10-virtual-desktop-enhancer) Icons. Thank you to the creators and contributors.
 
 ## ✨ Features ✨
 
