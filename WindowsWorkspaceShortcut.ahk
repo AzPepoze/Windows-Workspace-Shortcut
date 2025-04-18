@@ -5,52 +5,20 @@ Script Initialization
 */
 
 ; --- Configuration ---
-; Adjust the path to your DLL file if needed
 VDA_PATH := A_ScriptDir . "\VirtualDesktopAccessor.dll"
-; Example: VDA_PATH := "C:\Tools\AHK\Libs\VirtualDesktopAccessor.dll"
 
 /*
 ------------------------------------------------------
-Load Configuration
--------------------------------------------------------
-*/
-IniRead, SwitchDesktop1, config.ini, Hotkeys, SwitchDesktop1
-IniRead, SwitchDesktop2, config.ini, Hotkeys, SwitchDesktop2
-IniRead, SwitchDesktop3, config.ini, Hotkeys, SwitchDesktop3
-IniRead, SwitchDesktop4, config.ini, Hotkeys, SwitchDesktop4
-IniRead, SwitchDesktop5, config.ini, Hotkeys, SwitchDesktop5
-IniRead, SwitchDesktop6, config.ini, Hotkeys, SwitchDesktop6
-IniRead, SwitchDesktop7, config.ini, Hotkeys, SwitchDesktop7
-IniRead, SwitchDesktop8, config.ini, Hotkeys, SwitchDesktop8
-IniRead, SwitchDesktop9, config.ini, Hotkeys, SwitchDesktop9
-IniRead, MoveWindowDesktop1, config.ini, Hotkeys, MoveWindowDesktop1
-IniRead, MoveWindowDesktop2, config.ini, Hotkeys, MoveWindowDesktop2
-IniRead, MoveWindowDesktop3, config.ini, Hotkeys, MoveWindowDesktop3
-IniRead, MoveWindowDesktop4, config.ini, Hotkeys, MoveWindowDesktop4
-IniRead, MoveWindowDesktop5, config.ini, Hotkeys, MoveWindowDesktop5
-IniRead, MoveWindowDesktop6, config.ini, Hotkeys, MoveWindowDesktop6
-IniRead, MoveWindowDesktop7, config.ini, Hotkeys, MoveWindowDesktop7
-IniRead, MoveWindowDesktop8, config.ini, Hotkeys, MoveWindowDesktop8
-IniRead, MoveWindowDesktop9, config.ini, Hotkeys, MoveWindowDesktop9
-
-/*
-------------------------------------------------------
-Load DLL
+Load DLL & Get Functions
 -------------------------------------------------------
 */
 hVirtualDesktopAccessor := DllCall("LoadLibrary", "Str", VDA_PATH, "Ptr")
-
 if (!hVirtualDesktopAccessor)
 {
-    MsgBox, 0x10, VirtualDesktopAccessor Error, Could not load VirtualDesktopAccessor.dll.`n`nPath Tried: %VDA_PATH%`n`nMake sure:`n- The path is correct.`n- The DLL file exists.`n- The DLL version (32/64-bit) matches your AutoHotkey version.
+    MsgBox, 0x10, VirtualDesktopAccessor Error, Could not load VirtualDesktopAccessor.dll.`n`nPath Tried: %VDA_PATH%
     ExitApp
 }
 
-/*
-------------------------------------------------------
-Get Function Addresses
--------------------------------------------------------
-*/
 GoToDesktopNumberProc         := DllCall("GetProcAddress", "Ptr", hVirtualDesktopAccessor, "AStr", "GoToDesktopNumber", "Ptr")
 GetCurrentDesktopNumberProc   := DllCall("GetProcAddress", "Ptr", hVirtualDesktopAccessor, "AStr", "GetCurrentDesktopNumber", "Ptr")
 GetDesktopCountProc           := DllCall("GetProcAddress", "Ptr", hVirtualDesktopAccessor, "AStr", "GetDesktopCount", "Ptr")
@@ -59,41 +27,49 @@ MoveWindowToDesktopNumberProc := DllCall("GetProcAddress", "Ptr", hVirtualDeskto
 
 if (!GoToDesktopNumberProc || !GetCurrentDesktopNumberProc || !GetDesktopCountProc || !CreateDesktopProc || !MoveWindowToDesktopNumberProc)
 {
-    MsgBox, 0x10, VirtualDesktopAccessor Error, Could not get one or more required function addresses from the DLL.`nMake sure the DLL is not corrupted and is the correct version.
-    DllCall("FreeLibrary", "Ptr", hVirtualDesktopAccessor) ; Unload the DLL before exiting
+    MsgBox, 0x10, VirtualDesktopAccessor Error, Could not get function addresses from the DLL.
+    DllCall("FreeLibrary", "Ptr", hVirtualDesktopAccessor)
     ExitApp
 }
 
 /*
 -------------------------------------------------------
-Dynamic Hotkey Assignment
+Dynamic Hotkey Assignment (Loop)
 -------------------------------------------------------
 */
-Hotkey, %SwitchDesktop1%, SwitchToDesktop_1_Label
-Hotkey, %SwitchDesktop2%, SwitchToDesktop_2_Label
-Hotkey, %SwitchDesktop3%, SwitchToDesktop_3_Label
-Hotkey, %SwitchDesktop4%, SwitchToDesktop_4_Label
-Hotkey, %SwitchDesktop5%, SwitchToDesktop_5_Label
-Hotkey, %SwitchDesktop6%, SwitchToDesktop_6_Label
-Hotkey, %SwitchDesktop7%, SwitchToDesktop_7_Label
-Hotkey, %SwitchDesktop8%, SwitchToDesktop_8_Label
-Hotkey, %SwitchDesktop9%, SwitchToDesktop_9_Label
+Loop, 9 ; Loop for Desktop 1 through 9
+{
+    CurrentIndex := A_Index
 
-Hotkey, %MoveWindowDesktop1%, MoveWindow_1_Label
-Hotkey, %MoveWindowDesktop2%, MoveWindow_2_Label
-Hotkey, %MoveWindowDesktop3%, MoveWindow_3_Label
-Hotkey, %MoveWindowDesktop4%, MoveWindow_4_Label
-Hotkey, %MoveWindowDesktop5%, MoveWindow_5_Label
-Hotkey, %MoveWindowDesktop6%, MoveWindow_6_Label
-Hotkey, %MoveWindowDesktop7%, MoveWindow_7_Label
-Hotkey, %MoveWindowDesktop8%, MoveWindow_8_Label
-Hotkey, %MoveWindowDesktop9%, MoveWindow_9_Label
+    ; --- Read and Assign Switch Hotkey ---
+    IniReadKey := "SwitchDesktop" . CurrentIndex
+    IniRead, HotkeyValue, config.ini, Hotkeys, %IniReadKey%
+    if (HotkeyValue != "" && HotkeyValue != "ERROR") ; Check if key was read successfully
+    {
+        LabelName := "SwitchToDesktop_" . CurrentIndex . "_Label"
+        Hotkey, %HotkeyValue%, %LabelName%
+    } else {
+        MsgBox, 0x30, Config Warning, Could not read hotkey for %IniReadKey% from config.ini
+    }
+
+
+    ; --- Read and Assign Move Window Hotkey ---
+    IniReadKey := "MoveWindowDesktop" . CurrentIndex
+    IniRead, HotkeyValue, config.ini, Hotkeys, %IniReadKey%
+    if (HotkeyValue != "" && HotkeyValue != "ERROR") ; Check if key was read successfully
+    {
+        LabelName := "MoveWindow_" . CurrentIndex . "_Label"
+        Hotkey, %HotkeyValue%, %LabelName%
+    } else {
+        MsgBox, 0x30, Config Warning, Could not read hotkey for %IniReadKey% from config.ini
+    }
+}
 
 Return ; End of auto-execute section
 
 /*
 -------------------------------------------------------
-Hotkey Labels
+Hotkey Labels (Generated by Loop Assignment)
 -------------------------------------------------------
 */
 
